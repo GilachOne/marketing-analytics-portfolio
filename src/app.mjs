@@ -1,3 +1,4 @@
+import { saView } from "./sa.mjs";
 import { data, projects, colors } from "./data.mjs";
 import { aggregate, activity, recommendation } from "./metrics.mjs";
 const $ = (id) => document.getElementById(id),
@@ -12,7 +13,7 @@ const esc = (s) =>
         c
       ],
   );
-let page = ["vk", "ao", "managers"].includes(location.hash.slice(1))
+let page = ["vk", "ao", "managers", "sa"].includes(location.hash.slice(1))
     ? location.hash.slice(1)
     : "vk",
   tab = "overview";
@@ -138,6 +139,54 @@ function managerTable(cs) {
     )}</tbody></table></div></div><div class="callout"><strong>Почему источники разделены?</strong> Презентации подтверждает ОКК, встречи берутся из двух журналов с дедупликацией по ID лида, деньги — из реестра поступлений. Конверсия показана только в режиме когорты.</div>`;
 }
 function render() {
+  document.querySelector(".toolbar").hidden = page === "sa";
+  if (page === "sa") {
+    $("error").textContent = "";
+    document
+      .querySelectorAll("[data-page]")
+      .forEach((b) => b.classList.toggle("active", b.dataset.page === page));
+    $("title").textContent = "SA DASH";
+    $("subtitle").textContent =
+      "Оперативные остатки, покупки и поступления лидов";
+    const active = ["stock", "purchases", "stages", "incoming"].includes(tab)
+      ? tab
+      : "stock";
+    $("tabs").innerHTML =
+      [
+        ["stock", "Доступные лиды"],
+        ["purchases", "Покупки"],
+        ["stages", "Покупки по стадиям"],
+        ["incoming", "Поступившие лиды"],
+      ]
+        .map(
+          ([id, label]) =>
+            `<button data-sa-tab="${id}" class="${active === id ? "active" : ""}">${label}</button>`,
+        )
+        .join("") +
+      `<select id="sa-project" aria-label="Проект SA"><option value="">Все проекты</option>${projects.map((p) => `<option ${$("project").value === p ? "selected" : ""}>${p}</option>`).join("")}</select>`;
+    $("tabs")
+      .querySelectorAll("button")
+      .forEach(
+        (b) =>
+          (b.onclick = () => {
+            tab = b.dataset.saTab;
+            render();
+          }),
+      );
+    $("sa-project").onchange = () => {
+      $("project").value = $("sa-project").value;
+      render();
+    };
+    $("mode").textContent =
+      "В рабочем приложении — автосбор каждые 10 минут и статус обновления. В портфолио — фиксированный демонстрационный снимок.";
+    const view = saView($("project").value, active);
+    $("kpis").innerHTML = view.kpis;
+    $("kpis").classList.add("sa-kpis");
+    $("content").innerHTML = view.content;
+    return;
+  }
+  $("kpis").classList.remove("sa-kpis");
+
   if (!options().from || !options().to || options().from > options().to) {
     $("error").textContent = "Укажите корректный диапазон дат.";
     return;

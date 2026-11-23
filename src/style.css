@@ -521,3 +521,24 @@ select:focus-visible {
     display: none;
   }
 }
+
+[hidden] {
+  display: none !important;
+}
+.sa-kpis {
+  grid-template-columns: repeat(3, 1fr);
+}
+.tabs {
+  flex-wrap: wrap;
+}
+@media (max-width: 700px) {
+  nav {
+    flex-wrap: wrap;
+  }
+  nav button {
+    width: auto;
+  }
+  .sa-kpis {
+    grid-template-columns: 1fr;
+  }
+}
