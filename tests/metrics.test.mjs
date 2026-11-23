@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {aggregate,ratio,activity} from '../src/metrics.mjs';
+const fixture={asOf:'2026-11-23',campaigns:[],leads:[{id:'L1',campaignId:'C1',created:'2026-10-01',manager:'A'},{id:'L2',campaignId:'C1',created:'2026-11-01',manager:'B'}],spend:[{campaignId:'C1',date:'2026-11-01',direct:10000,overhead:2000}],presentations:[{leadId:'L1',date:'2026-11-01',confirmed:true},{leadId:'L2',date:'2026-11-02',confirmed:false}],meetings:[{leadId:'L1',date:'2026-11-02',source:'A'},{leadId:'L1',date:'2026-11-02',source:'B'},{leadId:'L2',date:'2026-11-05',source:'A'}],payments:[{leadId:'L1',date:'2026-11-03',dealId:'D1',amount:10000},{leadId:'L1',date:'2026-11-06',dealId:'D1',amount:10000},{leadId:'L2',date:'2026-11-20',dealId:'D2',amount:30000}]};
+const period={from:'2026-11-01',to:'2026-11-10'};
+test('Journal union counts unique leads, installments count one deal',()=>{const m=aggregate(fixture,['C1'],period);assert.equal(m.vks,2);assert.equal(m.deals,1);assert.equal(m.revenue,20000);assert.equal(m.presentations,1);assert.equal(m.expense,12000);assert.equal(m.drr,.6);assert.equal(m.conversion,null);});
+test('Cohort excludes old leads and includes later outcomes until snapshot',()=>{const m=aggregate(fixture,['C1'],{...period,cohort:true});assert.equal(m.leads,1);assert.equal(m.vks,1);assert.equal(m.revenue,30000);assert.equal(m.conversion,1);});
+test('Manager follows responsible lead owner',()=>{const m=aggregate(fixture,['C1'],{...period,manager:'A'});assert.equal(m.vks,1);assert.equal(m.revenue,20000);assert.equal(m.expense,0);});
+test('No payments means undefined DRR, not zero percent',()=>{assert.equal(ratio(20,0),null);assert.equal(aggregate(fixture,[],period).drr,null);});
+test('No selected spend does not erase historical activity',()=>{assert.equal(activity(fixture,'C1').last,'2026-11-01');});
